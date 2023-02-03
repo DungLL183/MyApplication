@@ -1,26 +1,31 @@
 pipeline{
-    agent any
-    tools{
-        maven 'maven'
+    agent linux
+    options{
+        buildDiscarder(logRotator(numToKeepStr:'$'))  
+    }
+    environment{
+        DOCKERHUB_CREDENTIALS = credentials('dung-dockerhub')
     }
     stages{
         stage('Build'){
             steps{
-                sh 'mvn clean package'
-            }
-        
-            post{
-                success{
-                    echo "Archiving the Artifacts"
-                    archiveArtifacts artifacts: '**/target/*.war'
-                }
+                sh 'docker build -t dung/dp-alpine:latest .'
             }
         }
-        stage('Deploy to tomcat server'){
+        stage('Login'){
             steps{
-                // deploy adapters: [tomcat9(credentialsId: '4147316f-870b-4aea-803e-6e088569c7d1', path: '', url: 'http://43.201.109.191:8088')], contextPath: null, war: '**/*.war'
-                deploy adapters: [tomcat9(credentialsId: '4147316f-870b-4aea-803e-6e088569c7d1', path: '', url: 'http://52.79.80.193/8088')], contextPath: null, war: '**/*.war'
+                sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --pasSword-stdin'
             }
+        }
+        stage('Push'){
+            steps{
+                sh 'docker push dung/dp-alpine:latest'
+            }
+        }
+    }
+    post{
+        always{
+            sh 'docker logout'
         }
     }
 }
