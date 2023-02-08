@@ -8,6 +8,7 @@ pipeline{
             steps{
                 sh 'mvn clean package'
             }
+        }
         
         stage('Deploy to tomcat server'){
             steps{
